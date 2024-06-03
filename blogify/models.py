@@ -17,7 +17,7 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(60), nullable=False)
     posts = db.relationship('Post', backref='author', lazy=True)
 
-    def get_reset_token(self, expires_sec: int=1800):
+    def get_reset_token(self, expires_sec: int=1800): 
         s = Serializer(app.config['SECRET_KEY'], expires_in=expires_sec)
         return s.dumps({'user_id': self.id}).decode('utf-8')
 
