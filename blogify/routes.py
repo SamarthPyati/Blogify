@@ -5,7 +5,7 @@ from PIL import Image
 import secrets
 from blogify import app, db, bcrypt, mail
 from blogify.forms import PostForm, RegistrationForm, LoginForm, UpdateAccountForm, RequestResetForm, ResetPasswordForm
-from blogify.models import User, Post, PostReaction
+from blogify.models import User, Post
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_mail import Message
 
@@ -81,25 +81,28 @@ def react_to_post(post_id):
     if reaction_type not in ['like', 'dislike']:
         return jsonify({"error": "Invalid reaction type"}), 400
 
-    # Check if the user already reacted to the post
-    existing_reaction = PostReaction.query.filter_by(post_id=post_id, user_id=current_user.id).first()
+    post = Post.query.get_or_404(post_id)
 
-    if existing_reaction:
-        # Update the reaction if it already exists
-        existing_reaction.reaction_type = reaction_type
-    else:
-        # Otherwise, create a new reaction
-        new_reaction = PostReaction(post_id=post_id, user_id=current_user.id, reaction_type=reaction_type)
-        db.session.add(new_reaction)
+    if reaction_type == 'like':
+        post.likes_count += 1
+        # If the user has already disliked, decrement dislikes
+        if post.dislikes_count > 0:
+            post.dislikes_count -= 1
+    elif reaction_type == 'dislike':
+        post.dislikes_count += 1
+        # If the user has already liked, decrement likes
+        if post.likes_count > 0:
+            post.likes_count -= 1
 
     db.session.commit()
-    return jsonify({"message": "Reaction updated successfully"}), 200
+    return jsonify({"message": "Reaction updated successfully", "likes": post.likes_count, "dislikes": post.dislikes_count}), 200
+
 
 @app.route("/post/<int:post_id>/reactions", methods=['GET'])
 def get_reactions(post_id):
-    likes = PostReaction.query.filter_by(post_id=post_id, reaction_type='like').count()
-    dislikes = PostReaction.query.filter_by(post_id=post_id, reaction_type='dislike').count()
-    return jsonify({"likes": likes, "dislikes": dislikes}), 200
+    post = Post.query.get_or_404(post_id)
+    return jsonify({"likes": post.likes_count, "dislikes": post.dislikes_count}), 200
+
 
 def save_picture(form_picture) -> str:
     ''' Converting the image to a hex name to ensure it doesn't collide with any other image name '''

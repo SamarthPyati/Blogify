@@ -39,18 +39,22 @@ class Post(db.Model):
     date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     content = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    likes_count = db.Column(db.Integer, default=0)  # Likes counter
+    dislikes_count = db.Column(db.Integer, default=0)  # Dislikes counter
+
 
     def __repr__(self):
         return f"Post({self.title}, {self.date_posted})"
     
-class PostReaction(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    reaction_type = db.Column(db.String(10), nullable=False)  # 'like' or 'dislike'
-    date_reacted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+# class PostReaction(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+#     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+#     reaction_type = db.Column(db.String(10), nullable=False)  # 'like' or 'dislike'
+#     date_reacted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    __table_args__ = (db.UniqueConstraint('post_id', 'user_id', name='unique_post_reaction'),)
+#     __table_args__ = (db.UniqueConstraint('post_id', 'user_id', name='unique_post_reaction'),)
 
-    def __repr__(self):
-        return f"PostReaction(post_id={self.post_id}, user_id={self.user_id}, reaction_type={self.reaction_type})"
+#     def __repr__(self):
+#         return f"PostReaction(post_id={self.post_id}, user_id={self.user_id}, reaction_type={self.reaction_type})"
