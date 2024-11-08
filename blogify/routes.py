@@ -1,8 +1,10 @@
+import io
 import os
-from flask import redirect, render_template, request, url_for, flash, abort, jsonify
-from sqlalchemy.engine import url
-from PIL import Image
 import secrets
+from flask import redirect, render_template, request, url_for, flash, abort, jsonify, send_file
+from sqlalchemy.engine import url
+from datetime import datetime
+from PIL import Image
 from blogify import app, db, bcrypt, mail
 from blogify.forms import PostForm, RegistrationForm, LoginForm, UpdateAccountForm, RequestResetForm, ResetPasswordForm
 from blogify.models import User, Post, PostReaction
@@ -203,7 +205,7 @@ def post(post_id):
 @login_required
 def update_post(post_id):
     post = Post.query.get_or_404(post_id)
-    if current_user != 'admin' and current_user != post.author:
+    if current_user.username != 'admin' and current_user != post.author:
         abort(403)
     form = PostForm()
     if form.validate_on_submit():
@@ -221,7 +223,7 @@ def update_post(post_id):
 @login_required
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
-    if current_user != 'admin' and current_user != post.author:
+    if current_user.username != 'admin' and current_user != post.author:
         abort(403)
     db.session.delete(post)
     db.session.commit()
@@ -287,3 +289,161 @@ def reset_token(token):
         db.session.commit()
         flash(f"The password is updated.", category='success')
     return render_template('reset_token.html', title='Reset Password', form=form)
+
+
+# REPORT GENERATION MODULE 
+import io
+from flask import send_file, request, jsonify, abort
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import pandas as pd
+from datetime import datetime
+from .models import User, Post  # Ensure to import your models
+
+import matplotlib
+matplotlib.use('Agg')  # Use the Agg backend for non-GUI rendering
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+@app.route("/generate_report/<string:username>", methods=['GET'])
+@login_required
+def generate_report(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    if current_user != user:
+        abort(403)
+    
+    report_type = request.args.get('type', 'pdf')
+
+    posts = Post.query.filter_by(author=user).order_by(Post.date_posted.desc()).all()
+    total_likes = sum(post.likes_count for post in posts)
+    total_dislikes = sum(post.dislikes_count for post in posts)
+    avg_likes = total_likes / len(posts) if posts else 0
+    avg_dislikes = total_dislikes / len(posts) if posts else 0
+
+    most_liked_post = max(posts, key=lambda p: p.likes_count, default=None)
+    most_disliked_post = max(posts, key=lambda p: p.dislikes_count, default=None)
+
+    engagement_data = {
+        "dates": [post.date_posted for post in posts],
+        "likes": [post.likes_count for post in posts],
+        "dislikes": [post.dislikes_count for post in posts]
+    }
+
+    report_data = {
+        "username": user.username,
+        "email": user.email,
+        "total_posts": len(posts),
+        "total_likes": total_likes,
+        "total_dislikes": total_dislikes,
+        "average_likes": avg_likes,
+        "average_dislikes": avg_dislikes,
+        "most_liked_post": most_liked_post,
+        "most_disliked_post": most_disliked_post,
+        "posts": [{"title": post.title, "date_posted": post.date_posted, "content": post.content, "likes": post.likes_count, "dislikes": post.dislikes_count} for post in posts]
+    }
+
+    if report_type == 'csv':
+        return generate_csv_report(report_data)
+    elif report_type == 'excel':
+        return generate_excel_report(report_data)
+    else:
+        return generate_pdf_report(report_data, engagement_data)
+
+def generate_pdf_report(data, engagement_data):
+    # Create an in-memory buffer
+    buffer = io.BytesIO()
+    
+    # Create a canvas object to draw on the buffer
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    try:
+        # Title and User Info
+        p.drawString(100, height - 40, f"User Engagement Report for {data['username']}")
+        p.drawString(100, height - 60, f"Email: {data['email']}")
+        p.drawString(100, height - 80, f"Total Posts: {data['total_posts']}")
+        p.drawString(100, height - 100, f"Total Likes: {data['total_likes']}")
+        p.drawString(100, height - 120, f"Total Dislikes: {data['total_dislikes']}")
+        p.drawString(100, height - 140, f"Average Likes per Post: {data['average_likes']:.2f}")
+        p.drawString(100, height - 160, f"Average Dislikes per Post: {data['average_dislikes']:.2f}")
+
+        # Most liked and disliked post
+        if data['most_liked_post']:
+            p.drawString(100, height - 180, f"Most Liked Post: {data['most_liked_post'].title} ({data['most_liked_post'].likes_count} likes)")
+        if data['most_disliked_post']:
+            p.drawString(100, height - 200, f"Most Disliked Post: {data['most_disliked_post'].title} ({data['most_disliked_post'].dislikes_count} dislikes)")
+
+        # Add a table of posts
+        y_position = height - 220
+        for post in data['posts']:
+            p.drawString(100, y_position, f"Title: {post['title']}")
+            y_position -= 20
+            p.drawString(100, y_position, f"Date Posted: {post['date_posted'].strftime('%Y-%m-%d %H:%M:%S')}")
+            y_position -= 20
+            p.drawString(100, y_position, f"Content: {post['content']}")
+            y_position -= 20
+            p.drawString(100, y_position, f"Likes: {post['likes']}, Dislikes: {post['dislikes']}")
+            y_position -= 40
+            if y_position < 40:  # Check if the content is overflowing
+                p.showPage()  # Start a new page if it overflows
+                y_position = height - 40  # Reset y position for the new page
+
+        # Generate and add visualizations
+        generate_visualizations(engagement_data, buffer)
+
+        # Save the PDF
+        p.save()
+
+        # Move to the start of the StringIO buffer
+        buffer.seek(0)
+        
+        # Send the PDF as a downloadable file
+        return send_file(buffer, as_attachment=True, download_name=f"{data['username']}_report.pdf", mimetype='application/pdf')
+
+    except Exception as e:
+        # Handle any exceptions that occur during PDF creation
+        print(f"Error generating PDF: {str(e)}")
+        return jsonify({"error": "Failed to generate report"}), 500
+    
+def generate_csv_report(data):
+    df = pd.DataFrame(data['posts'])
+    buffer = io.BytesIO()
+    df.to_csv(buffer, index=False)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name=f"{data['username']}_report.csv", mimetype='text/csv')
+
+def generate_excel_report(data):
+    df = pd.DataFrame(data['posts'])
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name=f"{data['username']}_report.xlsx", mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+def generate_visualizations(engagement_data, buffer):
+    # Create plots for likes and dislikes over time
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    df = pd.DataFrame(engagement_data)
+
+    # Create a plot
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.lineplot(x='dates', y='likes', data=df, ax=ax, label='Likes')
+    sns.lineplot(x='dates', y='dislikes', data=df, ax=ax, label='Dislikes')
+
+    ax.set_title('Engagement Over Time')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Count')
+    ax.legend()
+
+    # Save the plot to a buffer
+    img_buffer = io.BytesIO()
+    plt.savefig(img_buffer, format='png')
+    img_buffer.seek(0)
+
+    # Add the plot to the PDF
+    c = canvas.Canvas(buffer)
+    c.drawImage(img_buffer, 50, 300, width=500, height=400)
+    c.showPage()
+    c.save()

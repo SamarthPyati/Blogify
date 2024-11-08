@@ -40,7 +40,7 @@ class Post(db.Model):
     content = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
-    likes_count = db.Column(db.Integer, default=0)  # Likes counter
+    likes_count = db.Column(db.Integer, default=0)     # Likes counter
     dislikes_count = db.Column(db.Integer, default=0)  # Dislikes counter
 
 

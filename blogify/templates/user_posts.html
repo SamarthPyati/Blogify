@@ -7,14 +7,15 @@
             <article class="media content-section">
               <div class="media-body">
                 <div class="article-metadata">
-                  <img class="rounded-circle article-img" src="{{ url_for('static', filename='profile_pics' + post.author.profile_pic) }}">
+                  <img class="rounded-circle article-img" src="{{ url_for('static', filename='profile_pics' + post.author.profile_pic)}}">
                   <a class="mr-2" href="{{ url_for('user_posts', username=post.author.username) }}">{{ post.author.username }}</a>
-                  <small class="text-muted">{{ post.date_posted.strftime("%Y-%m-%d") }}</small>
+                  <small class="text-muted m-3">{{ post.date_posted.strftime("%Y-%m-%d") }}</small>
                 </div>
                 <h2><a class="article-title" href="{{ url_for('post', post_id=post.id) }}">{{ post.title }}</a></h2>
-                <p class="article-content">{{ post.content }}</p>
+                <p class="article-content p-6">{{ post.content }}</p>
               </div>
             </article>
+            
             {% endfor %}
 
             <!-- posts pagination hyperlinks -->
@@ -31,4 +32,13 @@
             {% endfor %}
         </div>
     </div>
+    
+    {% if current_user.username == 'admin' %}
+      <div class="m-4 report-buttons">
+        <a href="{{ url_for('generate_report', username=user.username, type='pdf') }}" class="btn btn-primary">Generate PDF Report</a>
+        <a href="{{ url_for('generate_report', username=user.username, type='csv') }}" class="btn btn-secondary">Generate CSV Report</a>
+        <a href="{{ url_for('generate_report', username=user.username, type='excel') }}" class="btn btn-success">Generate Excel Report</a>
+      </div>
+    {% endif %}
+  
 {% endblock content %}
