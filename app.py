@@ -1,3 +1,4 @@
+# TESTING
 from blogify import app
 from blogify import db
 

@@ -1,55 +1,80 @@
 {% extends "about_layout.html" %}
 {% block content %}
-    <div class="d-flex justify-content-center">
-        <div class="text-center p-4">
-            <h1 class="fw-bold" style="font-size: 40px;">Purpose of this platform</h2>
-            <div class="d-flex justify-content-center">
-                <div class="text-center p-4">
-                    <p class="lead">We believe that everyone has a voice and a story to share. Our platform is designed to provide a space for users to express their thoughts, opinions, and experiences. Whether it's news, entertainment, or personal stories, we strive to create a platform where users can connect with others and share their perspectives.</p>
-                    <p class="lead">Our vision is to create a community where users can come together, engage in meaningful conversations, and foster a sense of community and understanding. By providing a platform for users to share their content, we aim to create a world where everyone can find a voice and be heard.</p>
+    <style>
+        .creator-card {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        .creator-card:hover {
+            transform: scale(1.05);
+        }
+        .creator-img {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        .creator-info {
+            margin-left: 20px;
+        }
+    </style>
+
+    <div class="container">
+        <div class="text-center my-5">
+            <h1 class="fw-bold" style="font-size: 40px;">Purpose of this platform</h1>
+            <p class="lead">We believe that everyone has a voice and a story to share. Our platform is designed to provide a space for users to express their thoughts, opinions, and experiences. Whether it's news, entertainment, or personal stories, we strive to create a platform where users can connect with others and share their perspectives.</p>
+            <p class="lead">Our vision is to create a community where users can come together, engage in meaningful conversations, and foster a sense of community and understanding. By providing a platform for users to share their content, we aim to create a world where everyone can find a voice and be heard.</p>
+        </div>
+
+        <div class="text-center my-5">
+            <h1 class="fw-bold" style="font-size: 40px;">Creators</h1>
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="creator-card">
+                        <img class="creator-img" src="{{ url_for('static', filename='creators/samarth.jpeg')}}" alt="Samarth Sanjay Pyati">
+                        <div class="creator-info">
+                            <h5 class="mt-0" style="font-size: 20px;">Samarth Sanjay Pyati</h5>
+                            <p style="font-size: 18px;">1RVU23CSE400</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="creator-card">
+                        <img class="creator-img" src="{{ url_for('static', filename='creators/aryan.jpg') }}" alt="Aryan Singh">
+                        <div class="creator-info">
+                            <h5 class="mt-0" style="font-size: 20px;">Aryan Singh</h5>
+                            <p style="font-size: 18px;">1RVU23CSE085</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="creator-card">
+                        <img class="creator-img" src="{{ url_for('static', filename='creators/amit.png') }}" alt="Amit">
+                        <div class="creator-info">
+                            <h5 class="mt-0" style="font-size: 20px;">Amit</h5>
+                            <p style="font-size: 18px;">1RVU23CSE087</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="creator-card">
+                        <img class="creator-img" src="{{ url_for('static', filename='creators/chutmarika.jpg') }}" alt="Prathyush">
+                        <div class="creator-info">
+                            <h5 class="mt-0" style="font-size: 20px;">Prathyush</h5>
+                            <p style="font-size: 18px;">1RVU23CSE375</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="d-flex justify-content-center">
-        <div class="text-center p-4">
-            <h1 class="fw-bold" style="font-size: 40px;">Creators</h2>
-            <div class="d-flex justify-content-center">
-                <div class="d-flex p-4">
-                    <img class="rounded-circle" src={{ url_for('static', filename='creators/samarth.jpeg')}} alt="Avatar" style="width:150px;height:150px;">
-                    <div class="media-body ms-3">
-                        <h5 class="mt-0" style="font-size: 20px;">Samarth Sanjay Pyati</h5>
-                        <p style="font-size: 18px;">1RVU23CSE400</p>
-                    </div>
-                </div>
-                <div class="d-flex p-4 ms-4">
-                    <img class="rounded-circle" src="{{ url_for('static', filename='creators/saanvi.png') }}" alt="Avatar" style="width:150px;height:150px;">
-                    <div class="media-body ms-3">
-                        <h5 class="mt-0" style="font-size: 20px;">Saanvi Venkatesh Kulkarni</h5>
-                        <p style="font-size: 18px;">1RVU23CSE391</p>
-                    </div>
-                </div>
-            </div>
-            <div class="d-flex justify-content-center">
-                <div class="d-flex p-4">
-                    <img class="rounded-circle" src="{{ url_for('static', filename='creators/aryan.jpeg') }}" alt="Avatar" style="width:150px;height:150px;">
-                    <div class="media-body ms-3">
-                        <h5 class="mt-0" style="font-size: 20px;">Aryan Singh Tomar</h5>
-                        <p style="font-size: 18px;">1RVU23CSE085</p>
-                    </div>
-                </div>
-                <div class="d-flex p-4 ms-4">
-                    <img class="rounded-circle" src="{{ url_for('static', filename='creators/kerala.png') }}" alt="Avatar" style="width:150px;height:150px;">
-                    <div class="media-body ms-3">
-                        <h5 class="mt-0" style="font-size: 20px;">Rishab Arayan Veedu</h5>
-                        <p style="font-size: 18px;">1RVU23CSE375</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
 {% endblock content %}
-
-
