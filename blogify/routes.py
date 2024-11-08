@@ -5,7 +5,7 @@ from PIL import Image
 import secrets
 from blogify import app, db, bcrypt, mail
 from blogify.forms import PostForm, RegistrationForm, LoginForm, UpdateAccountForm, RequestResetForm, ResetPasswordForm
-from blogify.models import User, Post
+from blogify.models import User, Post, PostReaction
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_mail import Message
 
@@ -54,7 +54,6 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('home'))
     form = LoginForm()
-    # Generating fake credentials to test log in
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password, form.password.data):
@@ -73,6 +72,7 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
+
 @app.route("/post/<int:post_id>/react", methods=['POST'])
 @login_required
 def react_to_post(post_id):
@@ -83,25 +83,63 @@ def react_to_post(post_id):
 
     post = Post.query.get_or_404(post_id)
 
-    if reaction_type == 'like':
-        post.likes_count += 1
-        # If the user has already disliked, decrement dislikes
-        if post.dislikes_count > 0:
-            post.dislikes_count -= 1
-    elif reaction_type == 'dislike':
-        post.dislikes_count += 1
-        # If the user has already liked, decrement likes
-        if post.likes_count > 0:
-            post.likes_count -= 1
+    # Check if the user has already reacted to this post
+    existing_reaction = PostReaction.query.filter_by(post_id=post_id, user_id=current_user.id).first()
+
+    if existing_reaction:
+        # If the user has already reacted, update their reaction
+        if existing_reaction.reaction_type == reaction_type:
+            # If they are trying to react the same way again, remove the reaction
+            db.session.delete(existing_reaction)
+            if reaction_type == 'like':
+                post.likes_count -= 1
+            else:
+                post.dislikes_count -= 1
+        else:
+            # If they had a different reaction, change it
+            existing_reaction.reaction_type = reaction_type
+            if reaction_type == 'like':
+                post.likes_count += 1
+                post.dislikes_count -= 1
+            else:
+                post.dislikes_count += 1
+                post.likes_count -= 1
+    else:
+        # If the user has not reacted before, create a new reaction
+        new_reaction = PostReaction(post_id=post_id, user_id=current_user.id, reaction_type=reaction_type)
+        db.session.add(new_reaction)
+        if reaction_type == 'like':
+            post.likes_count += 1
+        else:
+            post.dislikes_count += 1
 
     db.session.commit()
     return jsonify({"message": "Reaction updated successfully", "likes": post.likes_count, "dislikes": post.dislikes_count}), 200
 
 
 @app.route("/post/<int:post_id>/reactions", methods=['GET'])
+@login_required
 def get_reactions(post_id):
     post = Post.query.get_or_404(post_id)
-    return jsonify({"likes": post.likes_count, "dislikes": post.dislikes_count}), 200
+
+    # Get the total count of likes and dislikes
+    likes_count = post.likes_count
+    dislikes_count = post.dislikes_count
+
+    # Check if the current user has already reacted to this post
+    existing_reaction = PostReaction.query.filter_by(post_id=post_id, user_id=current_user.id).first()
+
+    # If the user has reacted, return their reaction type ('like' or 'dislike')
+    user_reaction = None
+    if existing_reaction:
+        user_reaction = existing_reaction.reaction_type
+
+    return jsonify({
+        "likes": likes_count,
+        "dislikes": dislikes_count,
+        "user_reaction": user_reaction  # This will be None if the user has not reacted
+    }), 200
+
 
 
 def save_picture(form_picture) -> str:
@@ -165,7 +203,7 @@ def post(post_id):
 @login_required
 def update_post(post_id):
     post = Post.query.get_or_404(post_id)
-    if current_user != post.author:
+    if current_user != 'admin' and current_user != post.author:
         abort(403)
     form = PostForm()
     if form.validate_on_submit():
@@ -183,7 +221,7 @@ def update_post(post_id):
 @login_required
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
-    if current_user != post.author:
+    if current_user != 'admin' and current_user != post.author:
         abort(403)
     db.session.delete(post)
     db.session.commit()

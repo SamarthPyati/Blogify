@@ -30,10 +30,10 @@
 
                     <!-- Like and Dislike buttons with icons -->
                     <div class="reaction-buttons mt-3">
-                        <button id="like-button-{{ post.id }}" onclick="toggleReaction('like', {{ post.id }})" class="btn btn-light">
+                        <button id="like-button-{{ post.id }}" onclick="toggleReaction('like', {{ post.id }})" class="btn btn-light {% if post.user_reaction == 'like' %}btn-primary{% endif %}">
                             <i class="fas fa-thumbs-up"></i> <span id="like-count-{{ post.id }}">{{ post.likes_count }}</span>
                         </button>
-                        <button id="dislike-button-{{ post.id }}" onclick="toggleReaction('dislike', {{ post.id }})" class="btn btn-light">
+                        <button id="dislike-button-{{ post.id }}" onclick="toggleReaction('dislike', {{ post.id }})" class="btn btn-light {% if post.user_reaction == 'dislike' %}btn-danger{% endif %}">
                             <i class="fas fa-thumbs-down"></i> <span id="dislike-count-{{ post.id }}">{{ post.dislikes_count }}</span>
                         </button>
                     </div>
@@ -68,7 +68,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.message) {
-                    // Update the like and dislike counts after the reaction
+                    // Update the like and dislike counts and button states
                     updateReactionCounts(postId);
                 }
             })
@@ -81,9 +81,32 @@
             fetch(`/post/${postId}/reactions`)
             .then(response => response.json())
             .then(data => {
+                // Update the count text
                 document.getElementById(`like-count-${postId}`).textContent = data.likes;
                 document.getElementById(`dislike-count-${postId}`).textContent = data.dislikes;
+
+                // Update button states
+                const likeButton = document.getElementById(`like-button-${postId}`);
+                const dislikeButton = document.getElementById(`dislike-button-${postId}`);
+
+                if (data.user_reaction === 'like') {
+                    likeButton.classList.add('btn-primary');
+                    dislikeButton.classList.remove('btn-danger');
+                } else if (data.user_reaction === 'dislike') {
+                    dislikeButton.classList.add('btn-danger');
+                    likeButton.classList.remove('btn-primary');
+                } else {
+                    likeButton.classList.remove('btn-primary');
+                    dislikeButton.classList.remove('btn-danger');
+                }
             });
         }
+
+        // Initialize reaction counts for each post when the page loads
+        document.addEventListener("DOMContentLoaded", function() {
+            {% for post in posts.items %}
+                updateReactionCounts({{ post.id }});
+            {% endfor %}
+        });
     </script>
 {% endblock content %}
