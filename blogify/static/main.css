@@ -5,6 +5,12 @@ body {
   font-size: larger;
 }
 
+.brand-name {
+  font-size: xx-large;
+  padding-inline: 20px;
+  text-shadow: 1px 1px #00000012;
+}
+
 h1, h2, h3, h4, h5, h6 {
   color: #444444;
 }
