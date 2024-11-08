@@ -21,6 +21,15 @@ def home():
 def about():
     return render_template("about.html", title="About")
 
+@app.route("/search")
+def search():
+    query = request.args.get('query')
+    page = request.args.get('page', 1, type=int)
+    if query:
+        posts = Post.query.filter(Post.title.contains(query) | Post.content.contains(query)).paginate(page=page, per_page=5)
+    else:
+        posts = Post.query.paginate(page=page, per_page=5)
+    return render_template('home.html', posts=posts)
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():

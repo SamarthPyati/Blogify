@@ -1,5 +1,17 @@
 {% extends "layout.html" %}
 {% block content %}
+    <!-- Search Bar -->
+    <div class="row my-4">
+      <div class="col-md-12">
+          <form action="{{ url_for('search') }}" method="GET" class="input-group">
+              <input type="text" name="query" class="form-control" placeholder="Search for...">
+              <span class="input-group-append">
+                  <button class="btn btn-primary" type="submit">Search</button>
+              </span>
+          </form>
+      </div>
+    </div>
+
     <div class="card">
         <div class="card-body">
             {% for post in posts.items %}
@@ -14,7 +26,8 @@
                   <small class="text-muted">{{ post.date_posted.strftime("%Y-%m-%d") }}</small>
                 </div>
                 <h2><a class="article-title" href="{{ url_for('post', post_id=post.id) }}">{{ post.title }}</a></h2>
-                <p class="article-content">{{ post.content }}</p>
+                <p class="article-content">{{ post.content[:200] }}...</p>
+                <a href="{{ url_for('post', post_id=post.id) }}" class="btn btn-primary">Read More &rarr;</a>
               </div>
             </article>
             {% endfor %}
