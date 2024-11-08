@@ -1,11 +1,11 @@
 import os
-from flask import redirect, render_template, request, url_for, flash, abort
+from flask import redirect, render_template, request, url_for, flash, abort, jsonify
 from sqlalchemy.engine import url
 from PIL import Image
 import secrets
 from blogify import app, db, bcrypt, mail
 from blogify.forms import PostForm, RegistrationForm, LoginForm, UpdateAccountForm, RequestResetForm, ResetPasswordForm
-from blogify.models import User, Post
+from blogify.models import User, Post, PostReaction
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_mail import Message
 
@@ -73,6 +73,33 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
+@app.route("/post/<int:post_id>/react", methods=['POST'])
+@login_required
+def react_to_post(post_id):
+    reaction_type = request.json.get('reaction_type')  # Expected: 'like' or 'dislike'
+
+    if reaction_type not in ['like', 'dislike']:
+        return jsonify({"error": "Invalid reaction type"}), 400
+
+    # Check if the user already reacted to the post
+    existing_reaction = PostReaction.query.filter_by(post_id=post_id, user_id=current_user.id).first()
+
+    if existing_reaction:
+        # Update the reaction if it already exists
+        existing_reaction.reaction_type = reaction_type
+    else:
+        # Otherwise, create a new reaction
+        new_reaction = PostReaction(post_id=post_id, user_id=current_user.id, reaction_type=reaction_type)
+        db.session.add(new_reaction)
+
+    db.session.commit()
+    return jsonify({"message": "Reaction updated successfully"}), 200
+
+@app.route("/post/<int:post_id>/reactions", methods=['GET'])
+def get_reactions(post_id):
+    likes = PostReaction.query.filter_by(post_id=post_id, reaction_type='like').count()
+    dislikes = PostReaction.query.filter_by(post_id=post_id, reaction_type='dislike').count()
+    return jsonify({"likes": likes, "dislikes": dislikes}), 200
 
 def save_picture(form_picture) -> str:
     ''' Converting the image to a hex name to ensure it doesn't collide with any other image name '''

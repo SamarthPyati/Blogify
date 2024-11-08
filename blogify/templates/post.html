@@ -19,6 +19,17 @@
                     </button>
                 </div>
             {% endif %}
+            
+            <!-- Like and Dislike buttons -->
+            <div class="reaction-buttons mt-3 mb-3">
+                <button id="like-button-{{ post.id }}" onclick="toggleReaction('like', {{ post.id }})" class="btn btn-light">
+                    <i class="fas fa-thumbs-up"></i> <span id="like-count-{{ post.id }}">{{ post.likes }}</span>
+                </button>
+                <button id="dislike-button-{{ post.id }}" onclick="toggleReaction('dislike', {{ post.id }})" class="btn btn-light">
+                    <i class="fas fa-thumbs-down"></i> <span id="dislike-count-{{ post.id }}">{{ post.dislikes }}</span>
+                </button>
+            </div>
+
         </div>
         <h2 class="article-title">{{ post.title }}</h2>
         <p class="article-content">{{ post.content }}</p>
@@ -47,4 +58,35 @@
     </div>
     </div>
 </div>
+
+<script>
+    function toggleReaction(reactionType, postId) {
+        fetch(`/post/${postId}/react`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reaction_type: reactionType })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                // Update the like and dislike counts after the reaction
+                updateReactionCounts(postId);
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    }
+
+    function updateReactionCounts(postId) {
+        fetch(`/post/${postId}/reactions`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById(`like-count-${postId}`).textContent = data.likes;
+            document.getElementById(`dislike-count-${postId}`).textContent = data.dislikes;
+        });
+    }
+</script>
 {% endblock content %}
