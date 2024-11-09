@@ -293,19 +293,21 @@ def reset_token(token):
 
 # REPORT GENERATION MODULE  
 import io
-from flask import send_file, request, jsonify, abort
+from flask import request, jsonify, abort
 from blogify.report import generate_csv_report, generate_excel_report, generate_pdf_report
 
-@app.route("/generate_report/<string:username>", methods=['GET'])
+@app.route("/generate_report/<string:username>", methods=['GET', 'POST'])
 @login_required
 def generate_report(username):
     user = User.query.filter_by(username=username).first_or_404()
-    if current_user != user:
-        abort(403)
-    
+
+    if current_user.username != 'admin':
+        abort(403)  # Return a 403 Forbidden error if not admin
+
     report_type = request.args.get('type', 'pdf')
 
     posts = Post.query.filter_by(author=user).order_by(Post.date_posted.desc()).all()
+
     total_likes = sum(post.likes_count for post in posts)
     total_dislikes = sum(post.dislikes_count for post in posts)
     avg_likes = total_likes / len(posts) if posts else 0
@@ -320,6 +322,7 @@ def generate_report(username):
         "dislikes": [post.dislikes_count for post in posts]
     }
 
+    # Prepare report data
     report_data = {
         "username": user.username,
         "email": user.email,
@@ -330,9 +333,19 @@ def generate_report(username):
         "average_dislikes": avg_dislikes,
         "most_liked_post": most_liked_post,
         "most_disliked_post": most_disliked_post,
-        "posts": [{"title": post.title, "date_posted": post.date_posted, "content": post.content, "likes": post.likes_count, "dislikes": post.dislikes_count} for post in posts]
+        "posts": [
+            {
+                "title": post.title,
+                "date_posted": post.date_posted,
+                "content": post.content,
+                "likes": post.likes_count,
+                "dislikes": post.dislikes_count
+            }
+            for post in posts
+        ]
     }
 
+    # Generate the report based on the specified type
     if report_type == 'csv':
         return generate_csv_report(report_data)
     elif report_type == 'excel':

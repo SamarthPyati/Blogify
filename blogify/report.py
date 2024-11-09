@@ -1,10 +1,9 @@
 from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 import seaborn as sns
 import pandas as pd
-from flask import send_file, request, jsonify, abort
+from flask import send_file
 import io
 
 import matplotlib
@@ -90,8 +89,13 @@ def generate_engagement_over_time_chart(engagement_data):
     return img_buffer
 
 def generate_reaction_pie_chart(data):
-    labels = 'Likes', 'Dislikes'
+    labels = ['Likes', 'Dislikes']
     sizes = [data['total_likes'], data['total_dislikes']]
+
+    # Handle case where sizes are zero to avoid NaN error
+    if sum(sizes) == 0:
+        sizes = [1, 1]  # or any other appropriate fallback
+
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
     ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
@@ -99,6 +103,7 @@ def generate_reaction_pie_chart(data):
 
     img_buffer = io.BytesIO()
     plt.savefig(img_buffer, format='png')
-    plt.close(fig)
+    plt.close(fig)  # Close the figure to release memory
     img_buffer.seek(0)
+
     return img_buffer
