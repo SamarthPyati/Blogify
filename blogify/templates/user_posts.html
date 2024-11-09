@@ -7,7 +7,7 @@
             <article class="media content-section">
               <div class="media-body">
                 <div class="article-metadata">
-                  <img class="rounded-circle article-img" src="{{ url_for('static', filename='profile_pics' + post.author.profile_pic)}}">
+                  <img class="rounded-circle article-img" src="{{ url_for('static', filename='profile_pics/' + post.author.profile_pic) }}">
                   <a class="mr-2" href="{{ url_for('user_posts', username=post.author.username) }}">{{ post.author.username }}</a>
                   <small class="text-muted m-3">{{ post.date_posted.strftime("%Y-%m-%d") }}</small>
                 </div>
